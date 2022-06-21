@@ -3,40 +3,45 @@
 import zulip
 from pprint import pprint
 from datetime import datetime
-import html_text
+# import html_text
 
 from_ts = datetime.timestamp(datetime(2022, 5, 19))
-to_ts = datetime.timestamp(datetime(2022, 6, 20))
+to_ts = datetime.timestamp(datetime(2022, 6, 22))
 
 
 # Pass the path to your zuliprc file here.
 client = zulip.Client(config_file="~/.zuliprc")
+messages = []
 
-# Get the 1000 last messages from public streams
-request = {
-    "anchor": "newest",
-    "num_before": 100,
-    "num_after": 0,
-    # "apply_markdown": False,
-    "narrow": [
-        {"operator": "streams", "operand": "public"},
-    ],
-}
-result = client.get_messages(request)
-if result['result'] != 'success':
-    pprint(result)
-
-messages = result['messages']
-
-# Get the next bulk while starting date
-while messages[0]['timestamp'] >= from_ts:
-    request['anchor'] = messages[0]['id'] - 1
+for stream in [
+    {"operator": "stream", "operand": "Программисты"},
+    {"operator": "streams", "operand": "public"},
+]:
+    # Get the 1000 last messages from public streams
+    request = {
+        "anchor": "newest",
+        "num_before": 100,
+        "num_after": 0,
+        # "apply_markdown": False,
+        "narrow": [
+            stream,
+        ],
+    }
     result = client.get_messages(request)
     if result['result'] != 'success':
         pprint(result)
-    if len(result['messages']) == 0:
-        break
+
     messages = result['messages'] + messages
+    # Get the next bulk while starting date
+    while len(messages) > 0 and messages[0]['timestamp'] >= from_ts:
+        request['anchor'] = messages[0]['id'] - 1
+        result = client.get_messages(request)
+        if result['result'] != 'success':
+            pprint(result)
+        if len(result['messages']) == 0:
+            break
+        messages = result['messages'] + messages
+
 
 # Filter by date
 messages = list(filter(
@@ -97,7 +102,8 @@ html_file.write(html)
 html_file.close()
 
 
-text = html_text.extract_text(html)
-text_file = open(f"./nsg_chat_archive_{from_ts_str}_{to_ts_str}.txt", "w")
-text_file.write(text)
-text_file.close()
+# # convert to text
+# text = html_text.extract_text(html)
+# text_file = open(f"./nsg_chat_archive_{from_ts_str}_{to_ts_str}.txt", "w")
+# text_file.write(text)
+# text_file.close()
